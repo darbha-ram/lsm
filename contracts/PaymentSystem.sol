@@ -16,11 +16,11 @@ contract PaymentSystem {
 
     // prior to netting, intentions to pay - each payer can have multiple
     // intentions to pay multiple payees.
-    Common.Payment[] intentionsToPay;
+    Common.PaymentLeg[] intentionsToPay;
 
     // after netting or other optimizations - payments that must be cleared
     // and settled to complete one cycle of operations.
-    Common.Payment[] finalPayments;
+    Common.PaymentLeg[] finalPayments;
 
     //
     // netting related data - TODO move into another Netting contract where this
@@ -40,23 +40,17 @@ contract PaymentSystem {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function pay(address toAddr, uint amount) public returns(uint) {
+    function pay(address toAddr, uint amount, address erc20) public returns(bytes32) {
         require(amount > 0);
-        uint pindex = intentionsToPay.length; // index of this payment
 
-        intentionsToPay.push(Common.Payment(pindex, msg.sender, toAddr, amount));
-        //console.log("Added payment at [%d]: amount %d, %s --> %s",
-        //    pindex, amount, msg.sender, toAddr);
-
-        // TODO - return the payment items' unique invariant ID. For now ID is the
-        // initial index in the array, is invariant even if item's position in array
-        // changes. Make this a hash computed from block timestamp and payment info.
-        return pindex;
+        Common.PaymentLeg memory leg = Common.newLeg(msg.sender, toAddr, amount, erc20);
+        intentionsToPay.push(leg);
+        return leg.id;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function getPayment(uint index) public view returns(Common.Payment memory) {
+    function getPayment(uint index) public view returns(Common.PaymentLeg memory) {
         require(index >= 0);
         require(index < intentionsToPay.length);
         return intentionsToPay[index];
@@ -64,13 +58,13 @@ contract PaymentSystem {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function deletePayment(uint pid) public returns(bool) {
+    function deletePayment(string memory pidString) public returns(bool) {
         bool found = false;
         uint delIndex = 0;
 
         // look for payment item with specified ID
         for (uint ii = 0; ii < intentionsToPay.length; ii++) {
-            if (intentionsToPay[ii].id == pid) {
+            if (intentionsToPay[ii].id == HashConverter.hexStringToBytes32(pidString)) {
                 found = true;
                 delIndex = ii;
                 break;
@@ -101,7 +95,12 @@ contract PaymentSystem {
         for (uint ii = 0; ii < intentionsToPay.length; ii++) {
             address payer  = intentionsToPay[ii].from;
             address payee  = intentionsToPay[ii].to;
-            uint    amount = intentionsToPay[ii].amt;
+            uint    amount = intentionsToPay[ii].amount;
+            
+            //
+            // TODO - erc20 is ignored at present, assuming all legs are on 1 supply.
+            //   This should be updated so that netting is per each erc20 supply!
+            //
 
             // update net amounts
             netAmounts[payer] -= int(amount);
@@ -116,12 +115,13 @@ contract PaymentSystem {
         for (uint ii = 0; ii < endpoints.length; ii++) {
             address endpt = endpoints[ii];
 
+            address dummyErc20 = address(0);
             if (netAmounts[endpt] == 0) continue;
             if (netAmounts[endpt] < 0) { // endpt is net payer
-                finalPayments.push(Common.Payment(finalPayments.length, endpt, address(0), uint(netAmounts[endpt])));
+                finalPayments.push(Common.newLeg(endpt, address(0), uint(netAmounts[endpt]), dummyErc20));
             }
             else { // endpt is a net payee
-                finalPayments.push(Common.Payment(finalPayments.length, address(0), endpt, uint(netAmounts[endpt])));
+                finalPayments.push(Common.newLeg(address(0), endpt, uint(netAmounts[endpt]), dummyErc20));
             }
         }
 
