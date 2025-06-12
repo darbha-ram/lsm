@@ -10,23 +10,17 @@ pragma solidity ^0.8.28;
 // Uncomment this line to use console.log
 import "hardhat/console.sol";
 //import { INetter } from "./INetter.sol";
+import "./Common.sol";
 
 contract PaymentSystem {
 
-    struct Payment {
-        uint    id;   // TODO - compute as hash of fields and blocktime, as bytes32
-        address from;
-        address to;
-        uint    amt;
-    }
-
     // prior to netting, intentions to pay - each payer can have multiple
     // intentions to pay multiple payees.
-    Payment[] intentionsToPay;
+    Common.Payment[] intentionsToPay;
 
     // after netting or other optimizations - payments that must be cleared
     // and settled to complete one cycle of operations.
-    Payment[] finalPayments;
+    Common.Payment[] finalPayments;
 
     //
     // netting related data - TODO move into another Netting contract where this
@@ -50,7 +44,7 @@ contract PaymentSystem {
         require(amount > 0);
         uint pindex = intentionsToPay.length; // index of this payment
 
-        intentionsToPay.push(Payment(pindex, msg.sender, toAddr, amount));
+        intentionsToPay.push(Common.Payment(pindex, msg.sender, toAddr, amount));
         //console.log("Added payment at [%d]: amount %d, %s --> %s",
         //    pindex, amount, msg.sender, toAddr);
 
@@ -62,7 +56,7 @@ contract PaymentSystem {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function getPayment(uint index) public view returns(Payment memory) {
+    function getPayment(uint index) public view returns(Common.Payment memory) {
         require(index >= 0);
         require(index < intentionsToPay.length);
         return intentionsToPay[index];
@@ -124,10 +118,10 @@ contract PaymentSystem {
 
             if (netAmounts[endpt] == 0) continue;
             if (netAmounts[endpt] < 0) { // endpt is net payer
-                finalPayments.push(Payment(finalPayments.length, endpt, address(0), uint(netAmounts[endpt])));
+                finalPayments.push(Common.Payment(finalPayments.length, endpt, address(0), uint(netAmounts[endpt])));
             }
             else { // endpt is a net payee
-                finalPayments.push(Payment(finalPayments.length, address(0), endpt, uint(netAmounts[endpt])));
+                finalPayments.push(Common.Payment(finalPayments.length, address(0), endpt, uint(netAmounts[endpt])));
             }
         }
 
