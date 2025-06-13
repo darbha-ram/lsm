@@ -15,17 +15,17 @@ import "./Common.sol";
 contract PaymentSystem {
 
     // Netting implementations for a single currency supply, and multiple supplies. Eventually
-    // this contract should only use the mu
+    // this contract should only use a Netter that handles many supplies.
     INetter public immutable SINGLENTR;
     INetter public immutable MANYNTR;
 
-    // prior to netting, intentions to pay - each payer can have multiple
-    // intentions to pay multiple payees.
-    Common.PaymentLeg[] intentionsToPay;
+    // intentions to pay - each payer can have multiple intentions recorded, including several
+    // to same payee of the same amount.
+    Common.PaymentLeg[] rawIntentions;
 
-    // after netting or other optimizations - payments that must be cleared
+    // payment intentions aftey they've been subject to netting. these must be cleared
     // and settled to complete one cycle of operations.
-    Common.PaymentLeg[] finalPayments;
+    Common.PaymentLeg[] nettedIntentions;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -41,7 +41,7 @@ contract PaymentSystem {
         require(amount > 0);
 
         Common.PaymentLeg memory leg = Common.newLeg(msg.sender, toAddr, amount, erc20);
-        intentionsToPay.push(leg);
+        rawIntentions.push(leg);
         return leg.id;
     }
 
@@ -49,14 +49,24 @@ contract PaymentSystem {
     //
     function netIntentions() public {
 
+        // Use Netter of choice to do offsetting
+        Common.PaymentLeg[] memory offsetted = SINGLENTR.offsetPayments(rawIntentions);
+
+        // Copying of "Common.PaymentLeg memory[] memory" to storage (by assignment) is not supported,
+        // so assign to memory var, then copy each element one by one to storage.
+        delete nettedIntentions;
+        for (uint ii = 0; ii < offsetted.length; ii++) {
+            nettedIntentions.push(offsetted[ii]);
+        }
+
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
     function getPayment(uint index) public view returns(Common.PaymentLeg memory) {
         require(index >= 0);
-        require(index < intentionsToPay.length);
-        return intentionsToPay[index];
+        require(index < rawIntentions.length);
+        return rawIntentions[index];
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -66,8 +76,8 @@ contract PaymentSystem {
         uint delIndex = 0;
 
         // find leg with specified string ID (convert it to binary hash to compare to internal legs)
-        for (uint ii = 0; ii < intentionsToPay.length; ii++) {
-            if (intentionsToPay[ii].id == HashConverter.hexStringToBytes32(pidString)) {
+        for (uint ii = 0; ii < rawIntentions.length; ii++) {
+            if (rawIntentions[ii].id == HashConverter.hexStringToBytes32(pidString)) {
                 found = true;
                 delIndex = ii;
                 break;
@@ -77,9 +87,9 @@ contract PaymentSystem {
         // delete it and compact the array
         if (found) {
             // copy the last item to index to be deleted, then pop it from the array
-            uint lastIndex = intentionsToPay.length - 1;
-            intentionsToPay[delIndex] = intentionsToPay[lastIndex];
-            intentionsToPay.pop();
+            uint lastIndex = rawIntentions.length - 1;
+            rawIntentions[delIndex] = rawIntentions[lastIndex];
+            rawIntentions.pop();
             return true;
         }
         else

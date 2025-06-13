@@ -28,8 +28,8 @@ contract SingleCurrencyNetter is INetter {
     function offsetPayments(Common.PaymentLeg[] memory intentionsToPay) external
         returns(Common.PaymentLeg[] memory)
     {
-        // clear state prior to running this offsetting pass (TODO - move this data
-        // to be non-state, or local vars of this function, if possible.)
+        // clear state prior to running this offsetting pass. Note - cannot move
+        // this to local memory data, because push() is only permitted on storage data.
         delete netAmounts;
         delete nettedPayments;
 
