@@ -25,16 +25,17 @@ contract SingleCurrencyNetter is INetter {
     Common.PaymentLeg[] nettedPayments;
 
 
-    function netPayments(Common.PaymentLeg[] memory intentionsToPay) external
+    function offsetPayments(Common.PaymentLeg[] memory intentionsToPay) external
         returns(Common.PaymentLeg[] memory)
     {
-        // clear netting data prior to running a netting pass
+        // clear state prior to running this offsetting pass (TODO - move this data
+        // to be non-state, or local vars of this function, if possible.)
         delete netAmounts;
         delete nettedPayments;
 
         address erc20;
 
-        // run netting algorithm
+        // run offsetting algorithm
         for (uint ii = 0; ii < intentionsToPay.length; ii++) {
             address fromAddr  = intentionsToPay[ii].from;
             address toAddr    = intentionsToPay[ii].to;
@@ -48,7 +49,7 @@ contract SingleCurrencyNetter is INetter {
             updateNetForEndpt(toAddr, int(amount));
         }
 
-        // netting has completed. generate resulting payments
+        // ofsetting has completed. generate resulting payments
         for (uint ii = 0; ii < netAmounts.length; ii++) {
             address endpt = netAmounts[ii].endpt;
             int     net   = netAmounts[ii].netAmount;
@@ -73,6 +74,7 @@ contract SingleCurrencyNetter is INetter {
 
         for (uint ii = 0; ii < netAmounts.length; ii++) {
             if (netAmounts[ii].endpt == _endpt) {
+                // record for endpt exists, update it
                 netAmounts[ii].netAmount += _value;
                 return;
             }
