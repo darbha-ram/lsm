@@ -25,7 +25,7 @@ contract SingleCurrencyNetter is INetter {
     Common.PaymentLeg[] nettedPayments;
 
 
-    function offsetPayments(Common.PaymentLeg[] memory intentionsToPay) external
+    function offsetPayments(Common.PaymentLeg[] calldata intentionsToPay) external
         returns(Common.PaymentLeg[] memory)
     {
         // clear state prior to running this offsetting pass. Note - cannot move
