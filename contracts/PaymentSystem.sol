@@ -38,12 +38,12 @@ contract PaymentSystem {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function intentToPay(address toAddr, uint amount, address erc20) public returns(bytes32) {
+    function intentToPay(address toAddr, uint amount, address erc20) public returns(string memory) {
         require(amount > 0);
 
         Common.PaymentLeg memory leg = Common.newLeg(msg.sender, toAddr, amount, erc20);
         rawIntentions.push(leg);
-        return leg.id;
+        return HashConverter.toHexString(leg.id);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
