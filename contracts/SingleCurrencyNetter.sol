@@ -67,8 +67,8 @@ contract SingleCurrencyNetter is INetter {
         return nettedPayments;
     }
 
-    // Given a positive or negative value, update net amount for specified endpt by that value.
-    // A negative value means net amount decreases after update.
+    // Given a positive or negative increment value, update net amount for the specified
+    // endpt by that increment. A negative value means net amount decreases after update.
     //
     function updateNetForEndpt(address _endpt, int _value) internal {
 

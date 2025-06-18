@@ -7,9 +7,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-// Uncomment this line to use console.log
-import "./HashConverter.sol";
-
 library Common {
 
     // a payment in a single money supply (i.e., one contract)

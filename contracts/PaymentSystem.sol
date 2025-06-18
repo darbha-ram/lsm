@@ -11,6 +11,7 @@ pragma solidity ^0.8.28;
 import "hardhat/console.sol";
 import { INetter } from "./INetter.sol";
 import "./Common.sol";
+import "./HashConverter.sol";
 
 contract PaymentSystem {
 
@@ -19,12 +20,12 @@ contract PaymentSystem {
     INetter public immutable SINGLENTR;
     INetter public immutable MANYNTR;
 
-    // intentions to pay - each payer can have multiple intentions recorded, including several
+    // Intentions to pay - each payer can have multiple intentions recorded, including several
     // to same payee of the same amount.
     Common.PaymentLeg[] rawIntentions;
 
-    // payment intentions aftey they've been subject to netting. these must be cleared
-    // and settled to complete one cycle of operations.
+    // Intentions aftey they've been subject to netting. These are 'final' payments that would
+    // need to be cleared and settled to complete one cycle of operations.
     Common.PaymentLeg[] nettedIntentions;
 
 
