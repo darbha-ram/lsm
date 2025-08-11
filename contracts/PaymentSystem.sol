@@ -15,10 +15,8 @@ import "./HashConverter.sol";
 
 contract PaymentSystem {
 
-    // Netting implementations for a single currency supply, and multiple supplies. Eventually
-    // this contract should only use a Netter that handles many supplies.
-    INetter public immutable SINGLENTR;
-    INetter public immutable MANYNTR;
+    // Multi-lateral netting implementation
+    INetter public immutable NETTER;
 
     // Intentions to pay - each payer can have multiple intentions recorded, including several
     // to same payee of the same amount.
@@ -31,9 +29,8 @@ contract PaymentSystem {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    constructor(address singleNetter, address manyNetter) {
-        SINGLENTR  = INetter(singleNetter);
-        MANYNTR    = INetter(manyNetter);
+    constructor(address netter) {
+        NETTER = INetter(netter);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,8 +47,8 @@ contract PaymentSystem {
     //
     function netIntentions() public {
 
-        // Use Netter of choice to do offsetting
-        Common.PaymentLeg[] memory offsetted = SINGLENTR.offsetPayments(rawIntentions);
+        // invoke netter to do multi-lateral netting in multiple currencies
+        Common.PaymentLeg[] memory offsetted = NETTER.offsetPayments(rawIntentions, address(0));
 
         // Copying of "Common.PaymentLeg memory[] memory" to storage (by assignment) is not supported,
         // so assign to memory var, then copy each element one by one to storage.
