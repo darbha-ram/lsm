@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// SingleCurrencyNetter.sol
-// Multi-lateral netting implementation for payments over a single currency supply.
+// MultilateralNetter.sol
+// Multi-lateral netting implementation for payments in one or more currencies.
 //
 // Author: Ram Darbha
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -14,7 +14,7 @@ import { INetter } from "./INetter.sol";
 import "./Common.sol";
 
 
-contract SingleCurrencyNetter is INetter {
+contract MultilateralNetter is INetter {
 
     // make netAmounts contract storage, in order to pass it by reference to helper
     struct NetAmountByAddr {
