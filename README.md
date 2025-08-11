@@ -91,3 +91,12 @@ Private Key: 0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e
 
 ```
 
+
+
+# Troubleshooting
+
+1. If `npx hardhat compile` fails with error that `openzeppelin/contracts/token/ERC20/ERC20.sol`
+referenced in Coin contracts is not found, run `npm install @openzeppelin/contracts`
+to import the library, then verify that `~/node_modules/openzeppelin` exist and its contents
+have today's date.
+
