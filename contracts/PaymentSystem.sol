@@ -19,7 +19,7 @@ contract PaymentSystem {
     INetter public immutable NETTER;
 
     // Intentions to pay - each payer can have multiple intentions recorded, including several
-    // to same payee of the same amount.
+    // to same payee of the same amount, as long as they have different timestamps.
     Common.PaymentLeg[] rawIntentions;
 
     // Intentions aftey they've been subject to netting. These are 'final' payments that would
@@ -47,8 +47,8 @@ contract PaymentSystem {
     //
     function netIntentions() public {
 
-        // invoke netter to do multi-lateral netting in multiple currencies
-        Common.PaymentLeg[] memory offsetted = NETTER.offsetPayments(rawIntentions, address(0));
+        // invoke netter to do multi-lateral netting
+        Common.PaymentLeg[] memory offsetted = NETTER.offsetPayments(rawIntentions);
 
         // Copying of "Common.PaymentLeg memory[] memory" to storage (by assignment) is not supported,
         // so assign to memory var, then copy each element one by one to storage.

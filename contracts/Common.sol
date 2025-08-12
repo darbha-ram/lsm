@@ -15,10 +15,15 @@ library Common {
         address  from;
         address  to;
         uint     amount;   // in token decimals
-        address  erc20;    // currency of payment
+        address  erc20;    // money supply of payment
     }
 
-    // helper function to instantiate new PaymentLeg
+
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    // Helper function to instantiate new PaymentLeg
+    //   To ensure the id is globally unique, the block.timestamp of two payments must differ
+    //   if their from, to & amount are the same.
+    //
     function newLeg(address _from, address _to, uint _amount, address _erc20)
         public view returns(PaymentLeg memory) {
         return PaymentLeg({
@@ -29,8 +34,6 @@ library Common {
             erc20:  _erc20
         });
     }
-
-
 
 }
 
