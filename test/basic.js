@@ -50,9 +50,13 @@ describe("Libraries", function () {
 
     
     it("create new payment leg", async function () {
-        const from = "0x12345678";
-        const res = await myLibsTest.callNewLeg();
-        expect(res).to.equal("12Aug.1510");
+        const fromAddr = "0xE74D3B7eC9Ad1E2341abc69D22F2820B88d4D62b";
+        const toAddr   = "0xD8dfE02d0eD3Ff0E9fc100EdE06244c28d6f3655";
+        const res = await myLibsTest.callNewLeg(fromAddr, toAddr, 1000, toAddr);
+        expect(res.from).to.equal(fromAddr);
+        expect(res.to).to.equal(toAddr);
+        expect(res.amount).to.equal(1000n);
+        expect(res.erc20).to.equal(toAddr);
 
     });
 
