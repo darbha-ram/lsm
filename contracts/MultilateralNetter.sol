@@ -148,6 +148,11 @@ contract MultilateralNetter is INetter {
         netAmounts.push(AmountByEndpt(_endpt, _value, _erc20));
     }
 
+    function myver() public pure returns(string memory) {
+        return "13Aug.1225";
+    }
+
+
 
 
 }

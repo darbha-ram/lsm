@@ -20,11 +20,15 @@ contract PaymentSystem {
 
     // Intentions to pay - each payer can have multiple intentions recorded, including several
     // to same payee of the same amount, as long as they have different timestamps.
-    Common.PaymentLeg[] rawIntentions;
+    Common.PaymentLeg[] public rawIntentions;
 
     // Intentions aftey they've been subject to netting. These are 'final' payments that would
     // need to be cleared and settled to complete one cycle of operations.
-    Common.PaymentLeg[] nettedIntentions;
+    Common.PaymentLeg[] public nettedIntentions;
+
+    // store the ID of the last payment intention as contract data, so it can be retrieved after
+    // intentToPay() has completed.
+    string public lastPid;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -36,11 +40,18 @@ contract PaymentSystem {
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
     function intentToPay(address toAddr, uint amount, address erc20) public returns(string memory) {
-        require(amount > 0);
+        require(amount > 0, "amount must be positive value");
+        require(toAddr != address(0), "toAddr must be non-zero");
+        require(erc20  != address(0), "erc20 addr must be non-zero");
 
         Common.PaymentLeg memory leg = Common.newLeg(msg.sender, toAddr, amount, erc20);
         rawIntentions.push(leg);
-        return HashConverter.toHexString(leg.id);
+
+        string memory idStr = HashConverter.toHexString(leg.id);
+        console.log(string.concat("iTP: leg created ", idStr));
+
+        lastPid = idStr;
+        return idStr;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,13 +68,30 @@ contract PaymentSystem {
             nettedIntentions.push(offsetted[ii]);
         }
 
+        console.log("PaymentSystem completed netting pass");
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function getPayment(uint index) public view returns(Common.PaymentLeg memory) {
-        require(index >= 0);
-        require(index < rawIntentions.length);
+    function getPayment(string memory pidString) public view returns(Common.PaymentLeg memory) {
+
+        bytes memory myBytes = bytes(pidString);
+        require(myBytes.length == 66, "input pidString length must be 66!");
+
+        bool found = false;
+        uint index = 0;
+
+        // find leg with specified string ID (convert it to binary hash to compare to internal legs)
+        for (uint ii = 0; ii < rawIntentions.length; ii++) {
+            if (rawIntentions[ii].id == HashConverter.hexStringToBytes32(pidString)) {
+                found = true;
+                index = ii;
+                break;
+            }
+        }
+        if (!found)
+            revert(string.concat("Invalid payment ID not found: ", pidString));
+
         return rawIntentions[index];
     }
 
@@ -93,6 +121,11 @@ contract PaymentSystem {
         else
             return false;
     }
+
+    function myver() public pure returns(string memory) {
+        return "13Aug.1230";
+    }
+
 
 
 }
