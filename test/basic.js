@@ -13,7 +13,7 @@ const { ethers } = require("hardhat");
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-describe("Libraries", function () {
+describe("Common & HashConverter libraries", function () {
 
     let myLibsTest;
 
@@ -42,7 +42,7 @@ describe("Libraries", function () {
         await myLibsTest.waitForDeployment();
     });
 
-    it("verify MyLibsTest installed and accessible", async function () {
+    it("verify contract & libraries installed and accessible", async function () {
         const res = await myLibsTest.myver();
         expect(res).to.equal("12Aug.1510");
 
