@@ -120,7 +120,7 @@ describe("Netting in a single bank", function () {
         const pid1 = await paysysCon.lastPid();
 
         // delete this payment
-        await paysysCon.deletePayment(pid1);
+        await paysysCon.deleteRawPayment(pid1);
 
         // verify it can no longer be retrieved
         await expect(paysysCon.getRawPayment(pid1)).to.be
@@ -176,7 +176,7 @@ describe("Netting in a single bank", function () {
         const pid1 = await paysysCon.lastPid();
 
         // run netting process
-        resp = await paysysCon.netIntentions();
+        resp = await paysysCon.performNetting();
 
         // verify that result of netting 1 orig payment is 2 payments, as below
         // fromAddr -> toAddr is decomposed to
@@ -186,7 +186,7 @@ describe("Netting in a single bank", function () {
         expect(numItems).to.equal(2);
 
         // 1st netted payment: fromAddr -> erc20 contract
-        const item0 = await paysysCon.nettedIntentions(0);
+        const item0 = await paysysCon.nettedPayments(0);
         //console.log(item0);
         expect(item0.from).to.equal(sig0Addr);
         expect(item0.to).to.equal(erc20Addr);
@@ -194,7 +194,7 @@ describe("Netting in a single bank", function () {
         expect(item0.erc20).to.equal(erc20Addr);
 
         // 2nd netted payment: erc20 contract -> toAddr
-        const item1 = await paysysCon.nettedIntentions(1);
+        const item1 = await paysysCon.nettedPayments(1);
         //console.log(item1);
         expect(item1.from).to.equal(erc20Addr);
         expect(item1.to).to.equal(toAddr);
@@ -202,7 +202,7 @@ describe("Netting in a single bank", function () {
         expect(item1.erc20).to.equal(erc20Addr);
         
         // to issue transactions on same contract using other signers
-        //const item2 = await paysysCon.connect(sigs[1]).nettedIntentions(1);
+        //const item2 = await paysysCon.connect(sigs[1]).nettedPayments(1);
 
     });
 
@@ -228,7 +228,7 @@ describe("Netting in a single bank", function () {
         await paysysCon.connect(sigs[3]).intentToPay(sigs[0].address,  75, erc20Addr);
 
         // run netting process
-        resp = await paysysCon.netIntentions();
+        resp = await paysysCon.performNetting();
 
         // after netting: verify 4 netted payments -- these may be in any order, but
         // because we use Solidity push() which appends at the end, we can guess what
@@ -241,25 +241,25 @@ describe("Netting in a single bank", function () {
         const numItems = await paysysCon.numNetted();
         expect(numItems).to.equal(4);
 
-        const item0 = await paysysCon.nettedIntentions(0);
+        const item0 = await paysysCon.nettedPayments(0);
         expect(item0.from).to.equal(sigs[0].address);
         expect(item0.to).to.equal(erc20Addr);
         expect(item0.amount).to.equal(225n);
         expect(item0.erc20).to.equal(erc20Addr);
 
-        const item1 = await paysysCon.nettedIntentions(1);
+        const item1 = await paysysCon.nettedPayments(1);
         expect(item1.from).to.equal(erc20Addr);
         expect(item1.to).to.equal(sigs[1].address);
         expect(item1.amount).to.equal(100n);
         expect(item1.erc20).to.equal(erc20Addr);
 
-        const item2 = await paysysCon.nettedIntentions(2);
+        const item2 = await paysysCon.nettedPayments(2);
         expect(item2.from).to.equal(erc20Addr);
         expect(item2.to).to.equal(sigs[2].address);
         expect(item2.amount).to.equal(200n);
         expect(item2.erc20).to.equal(erc20Addr);
 
-        const item3 = await paysysCon.nettedIntentions(3);
+        const item3 = await paysysCon.nettedPayments(3);
         expect(item3.from).to.equal(sigs[3].address);
         expect(item3.to).to.equal(erc20Addr);
         expect(item3.amount).to.equal(75n);
@@ -303,7 +303,7 @@ describe("Netting in a single bank", function () {
         await paysysCon.connect(sigs[4]).intentToPay(sigs[3].address, 175, erc20Addr);
 
         // run netting process
-        resp = await paysysCon.netIntentions();
+        resp = await paysysCon.performNetting();
 
         // verify after netting
         // sig0 -> 325
@@ -315,25 +315,25 @@ describe("Netting in a single bank", function () {
         const numItems = await paysysCon.numNetted();
         expect(numItems).to.equal(4);
 
-        const item0 = await paysysCon.nettedIntentions(0);
+        const item0 = await paysysCon.nettedPayments(0);
         expect(item0.from).to.equal(sigs[0].address);
         expect(item0.to).to.equal(erc20Addr);
         expect(item0.amount).to.equal(325n);
         expect(item0.erc20).to.equal(erc20Addr);
 
-        const item1 = await paysysCon.nettedIntentions(1);
+        const item1 = await paysysCon.nettedPayments(1);
         expect(item1.from).to.equal(erc20Addr);
         expect(item1.to).to.equal(sigs[1].address);
         expect(item1.amount).to.equal(375n);
         expect(item1.erc20).to.equal(erc20Addr);
         
-        const item3 = await paysysCon.nettedIntentions(2);
+        const item3 = await paysysCon.nettedPayments(2);
         expect(item3.from).to.equal(sigs[4].address);
         expect(item3.to).to.equal(erc20Addr);
         expect(item3.amount).to.equal(125n);
         expect(item3.erc20).to.equal(erc20Addr);
 
-        const item4 = await paysysCon.nettedIntentions(3);
+        const item4 = await paysysCon.nettedPayments(3);
         expect(item4.from).to.equal(erc20Addr);
         expect(item4.to).to.equal(sigs[3].address);
         expect(item4.amount).to.equal(75n);

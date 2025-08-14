@@ -49,7 +49,7 @@ contract MultilateralNetter is INetter {
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     // Do multilateral netting across all monies in payment set
     //
-    function offsetPayments(Common.PaymentLeg[] calldata intentionsToPay) external
+    function performNetting(Common.PaymentLeg[] calldata intentionsToPay) external
         returns(Common.PaymentLeg[] memory)
     {
         // clear state prior to this offsetting pass - since the passes of different monies are
