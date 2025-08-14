@@ -49,7 +49,7 @@ contract MultilateralNetter is INetter {
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     // Do multilateral netting across all monies in payment set
     //
-    function performNetting(Common.PaymentLeg[] calldata intentionsToPay) external
+    function performNetting(Common.PaymentLeg[] calldata rawPayments) external
         returns(Common.PaymentLeg[] memory)
     {
         // clear state prior to this offsetting pass - since the passes of different monies are
@@ -59,14 +59,14 @@ contract MultilateralNetter is INetter {
         delete netAmounts;
         delete nettedPayments;
         
-        require(intentionsToPay.length > 0, "set of raw payments should not be empty");
+        require(rawPayments.length > 0, "set of raw payments should not be empty");
 
         // first, find the monies that are represented in the raw payments
-        for (uint ii = 0; ii < intentionsToPay.length; ii++) {
+        for (uint ii = 0; ii < rawPayments.length; ii++) {
 
             bool found = false;
             for (uint jj = 0; jj < monies.length; ++jj) {
-                if (monies[jj] == intentionsToPay[ii].erc20) {
+                if (monies[jj] == rawPayments[ii].erc20) {
                     found = true;
                     break;
                 }
@@ -74,12 +74,12 @@ contract MultilateralNetter is INetter {
             if (found) continue;
 
             // erc20 of this payment wasn't found in monies, add it
-            monies.push(intentionsToPay[ii].erc20);
+            monies.push(rawPayments[ii].erc20);
         }
 
         // now, iterate over the monies found, net by each one by one, accumulating result
         for (uint jj = 0; jj < monies.length; ++jj) {
-            offsetInMoney(intentionsToPay, monies[jj]);
+            offsetInMoney(rawPayments, monies[jj]);
         }
 
         // TBD - could delete monies and netAmounts here, but leave around for now
@@ -94,22 +94,22 @@ contract MultilateralNetter is INetter {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function offsetInMoney(Common.PaymentLeg[] calldata intentionsToPay, address money) internal
+    function offsetInMoney(Common.PaymentLeg[] calldata rawPayments, address money) internal
     {
         require(money != address(0), "money address must be non-zero");
 
         // run offsetting algorithm for payments in the specified money
-        for (uint ii = 0; ii < intentionsToPay.length; ii++) {
+        for (uint ii = 0; ii < rawPayments.length; ii++) {
 
-            if (intentionsToPay[ii].erc20 != money)
+            if (rawPayments[ii].erc20 != money)
             {
-                //console.log("Skipping intention #", ii);
+                //console.log("Skipping raw payment #", ii);
                 continue;
             }
 
-            address fromAddr  = intentionsToPay[ii].from;
-            address toAddr    = intentionsToPay[ii].to;
-            uint    amount    = intentionsToPay[ii].amount;
+            address fromAddr  = rawPayments[ii].from;
+            address toAddr    = rawPayments[ii].to;
+            uint    amount    = rawPayments[ii].amount;
 
             // update net amounts
             updateNetForEndpt(fromAddr, int(amount) * -1, money);
