@@ -31,9 +31,10 @@ describe("Netting in a single bank", function () {
         hashLib = await basecon.waitForDeployment();
         const hashAddr = await hashLib.getAddress();
 
-        // deploy one bank contract
+        // deploy one bank contract CorrACoin which is signer[1] - see README
         confact = await ethers.getContractFactory("CorrACoin");
-        basecon = await confact.deploy();
+        const sigs = await ethers.getSigners();
+        basecon = await confact.connect(sigs[1]).deploy();
         const corracoinCon = await basecon.waitForDeployment();
         //const corracoinAddr = await corracoinCon.getAddress();
 
@@ -121,11 +122,35 @@ describe("Netting in a single bank", function () {
 
     });
 
-    /*
     it("add and find multiple payments", async function() {
+        const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
 
+        const erc20Addr = await corracoinCon.getAddress();
+        const toAddr1   = "0xE74D3B7eC9Ad1E2341abc69D22F2820B88d4D62b"
+        const amount1 = 111111;
+        const toAddr2   = "0xD8dfE02d0eD3Ff0E9fc100EdE06244c28d6f3655";
+        const amount2 = 222222;
+
+        // add intention to pay - returns a receipt. Read lastPid set by it
+        resp = await paysysCon.intentToPay(toAddr1, amount1, erc20Addr);
+        const pid1 = await paysysCon.lastPid();
+        // .. and intention #2
+        resp = await paysysCon.intentToPay(toAddr2, amount2, erc20Addr);
+        const pid2 = await paysysCon.lastPid();
+
+        // retrieve and verify each
+        leg = await paysysCon.getPayment(pid1);
+        expect(leg.to).to.equal(toAddr1);
+        expect(leg.amount).to.equal(111111n);
+        expect(leg.erc20).to.equal(erc20Addr);
+
+        leg = await paysysCon.getPayment(pid2);
+        expect(leg.to).to.equal(toAddr2);
+        expect(leg.amount).to.equal(222222n);
+        expect(leg.erc20).to.equal(erc20Addr);
     });
 
+    /*
     it("net one payment", async function() {
 
     });
