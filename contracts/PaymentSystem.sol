@@ -61,19 +61,30 @@ contract PaymentSystem {
         // invoke netter to do multi-lateral netting
         Common.PaymentLeg[] memory offsetted = NETTER.offsetPayments(rawIntentions);
 
+        console.log("PS.nI: offsetted length is ", offsetted.length);
+
         // Copying of "Common.PaymentLeg memory[] memory" to storage (by assignment) is not supported,
         // so assign to memory var, then copy each element one by one to storage.
         delete nettedIntentions;
         for (uint ii = 0; ii < offsetted.length; ii++) {
+            console.log("PS.nI: adding netted intention ", offsetted[ii].amount);
             nettedIntentions.push(offsetted[ii]);
         }
 
-        console.log("PaymentSystem completed netting pass");
+        console.log("PaymentSystem completed netting pass: ", nettedIntentions.length);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
+    // Ideally shouldn't need this method, if call contract.nettedIntentions.length() works in JS.
+    // That doesn't work via Hardhat (tooling dependent?) so use this custom method for now.
+    function numNetted() public view returns(uint) {
+        return nettedIntentions.length;
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function getPayment(string memory pidString) public view returns(Common.PaymentLeg memory) {
+    function getRawPayment(string memory pidString) public view returns(Common.PaymentLeg memory) {
 
         bytes memory myBytes = bytes(pidString);
         require(myBytes.length == 66, "input pidString length must be 66!");

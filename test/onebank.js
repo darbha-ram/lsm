@@ -89,13 +89,13 @@ describe("Netting in a single bank", function () {
         expect(pid1.length).to.equal(66);
 
         // retrieve and check payment details
-        const leg = await paysysCon.getPayment(pid1);
+        const leg = await paysysCon.getRawPayment(pid1);
         expect(leg.to).to.equal(toAddr);
         expect(leg.amount).to.equal(123125n);
         expect(leg.erc20).to.equal(erc20Addr);
 
         const badId = "0x4a520f0a421f62b0f867894d6c6351ac3ca1fad8ee6247601c7c0e5768d96ab2";
-        await expect(paysysCon.getPayment(badId)).to.be
+        await expect(paysysCon.getRawPayment(badId)).to.be
             .revertedWith("Invalid payment ID not found: 0x4a520f0a421f62b0f867894d6c6351ac3ca1fad8ee6247601c7c0e5768d96ab2");
 
     });
@@ -117,7 +117,7 @@ describe("Netting in a single bank", function () {
         await paysysCon.deletePayment(pid1);
 
         // verify it can no longer be retrieved
-        await expect(paysysCon.getPayment(pid1)).to.be
+        await expect(paysysCon.getRawPayment(pid1)).to.be
             .revertedWith("Invalid payment ID not found: " + pid1);
 
     });
@@ -139,22 +139,61 @@ describe("Netting in a single bank", function () {
         const pid2 = await paysysCon.lastPid();
 
         // retrieve and verify each
-        leg = await paysysCon.getPayment(pid1);
+        leg = await paysysCon.getRawPayment(pid1);
         expect(leg.to).to.equal(toAddr1);
         expect(leg.amount).to.equal(111111n);
         expect(leg.erc20).to.equal(erc20Addr);
 
-        leg = await paysysCon.getPayment(pid2);
+        leg = await paysysCon.getRawPayment(pid2);
         expect(leg.to).to.equal(toAddr2);
         expect(leg.amount).to.equal(222222n);
         expect(leg.erc20).to.equal(erc20Addr);
     });
 
-    /*
     it("net one payment", async function() {
+        const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
 
+        // default signer0 is the 'from' address, store it to check later
+        const sigs = await ethers.getSigners();
+        const sig0Addr = sigs[0].address;
+
+        const erc20Addr = await corracoinCon.getAddress();
+        const toAddr    = "0xE74D3B7eC9Ad1E2341abc69D22F2820B88d4D62b"
+        const amount    = 123;
+
+        // add intention to pay - returns a receipt. Read lastPid set by it
+        resp = await paysysCon.intentToPay(toAddr, amount, erc20Addr);
+        const pid1 = await paysysCon.lastPid();
+
+        // run netting process
+        resp = await paysysCon.netIntentions();
+
+        // verify that result of netting 1 orig payment is 2 payments, as below
+        // fromAddr -> toAddr is decomposed to
+        //   (1) fromAddr -> erc20 contract
+        //   (2) erc20 contract -> toAddr
+        const numItems = await paysysCon.numNetted();
+        expect(numItems).to.equal(2);
+
+        // 1st netted payment: fromAddr -> erc20 contract
+        const item0 = await paysysCon.nettedIntentions(0);
+        //console.log(item0);
+        expect(item0.from).to.equal(sig0Addr);
+        expect(item0.to).to.equal(erc20Addr);
+        expect(item0.amount).to.equal(123n);
+        expect(item0.erc20).to.equal(erc20Addr);
+
+        // 2nd netted payment: erc20 contract -> toAddr
+        const item1 = await paysysCon.nettedIntentions(1);
+        //console.log(item1);
+        expect(item1.from).to.equal(erc20Addr);
+        expect(item1.to).to.equal(toAddr);
+        expect(item1.amount).to.equal(123n);
+        expect(item1.erc20).to.equal(erc20Addr);
+        
     });
 
+    /*
     it("net outgoing payments from 1 party", async function() {
 
     });

@@ -29,19 +29,21 @@ contract MultilateralNetter is INetter {
     // mapping. Arrays require linear search, a bit clunky compared to O(1) hashmap lookup,
     // but acceptable for this proof of concept.
     //
+    // Make all contract data public so it can be read via getters for ease of testing.
+    //
 
     struct AmountByEndpt {
         address endpt;
         int     amount;
         address erc20;
     }
-    AmountByEndpt[] netAmounts;
+    AmountByEndpt[] public netAmounts;
 
     // result of netting - set of payment legs, each specifying its money supply
-    Common.PaymentLeg[] nettedPayments;
+    Common.PaymentLeg[] public nettedPayments;
 
     // set of money supplies in which raw payments are specified
-    address[] monies;
+    address[] public monies;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,6 +73,9 @@ contract MultilateralNetter is INetter {
             }
             if (found) continue;
 
+            // temp
+            console.log("*** MN.oP: found money ", intentionsToPay[ii].erc20);
+
             // erc20 of this payment wasn't found in monies, add it
             monies.push(intentionsToPay[ii].erc20);
         }
@@ -80,7 +85,11 @@ contract MultilateralNetter is INetter {
             offsetInMoney(intentionsToPay, monies[jj]);
         }
 
-        // TBD - could delete monies and netAmounts here
+        // TBD - could delete monies and netAmounts here, but leave around for now
+        // as it could be useful to query these to understand actions completed in
+        // the most recent netting pass.
+
+        console.log("MN.oP: netted payments # is ", nettedPayments.length);
 
         return nettedPayments;
     }
@@ -92,11 +101,18 @@ contract MultilateralNetter is INetter {
     {
         require(money != address(0), "money address must be non-zero");
 
+        // temp
+        console.log("+++ MN.oIM: entry, #intentions: ", intentionsToPay.length);
+
+
         // run offsetting algorithm for payments in the specified money
         for (uint ii = 0; ii < intentionsToPay.length; ii++) {
 
             if (intentionsToPay[ii].erc20 != money)
+            {
+                console.log("Skipping intention #", ii);
                 continue;
+            }
 
             address fromAddr  = intentionsToPay[ii].from;
             address toAddr    = intentionsToPay[ii].to;
@@ -106,6 +122,9 @@ contract MultilateralNetter is INetter {
             updateNetForEndpt(fromAddr, int(amount) * -1, money);
             updateNetForEndpt(toAddr, int(amount), money);
         }
+
+        // temp
+        console.log("MN.oIM: netAmounts len = ", netAmounts.length);
 
         // ofsetting has completed. generate resulting payments
         for (uint ii = 0; ii < netAmounts.length; ii++) {
@@ -117,11 +136,21 @@ contract MultilateralNetter is INetter {
             int     net   = netAmounts[ii].amount;
 
             if (net == 0) continue;
-            if (net < 0) { // endpt is net payer
-                nettedPayments.push(Common.newLeg(endpt, address(0), uint(net * -1), money));
+            if (net < 0) { // endpt is net payer - pays to the money contract
+                nettedPayments.push(Common.newLeg(endpt, money, uint(net * -1), money));
+
+                // temp
+                console.log("Payer -->");
+                console.log(endpt);
+                console.log(uint(net*-1));
             }
-            else { // endpt is a net payee
-                nettedPayments.push(Common.newLeg(address(0), endpt, uint(net), money));
+            else { // endpt is a net payee - is paid FROM the money contract
+                nettedPayments.push(Common.newLeg(money, endpt, uint(net), money));
+
+                // temp
+                console.log("Payee <-- ");
+                console.log(endpt);
+                console.log(uint(net));
             }
         }
 
