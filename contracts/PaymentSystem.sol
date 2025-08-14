@@ -48,7 +48,7 @@ contract PaymentSystem {
         rawIntentions.push(leg);
 
         string memory idStr = HashConverter.toHexString(leg.id);
-        console.log(string.concat("iTP: leg created ", idStr));
+        //console.log(string.concat("iTP: leg created ", idStr));
 
         lastPid = idStr;
         return idStr;
@@ -61,17 +61,14 @@ contract PaymentSystem {
         // invoke netter to do multi-lateral netting
         Common.PaymentLeg[] memory offsetted = NETTER.offsetPayments(rawIntentions);
 
-        console.log("PS.nI: offsetted length is ", offsetted.length);
-
         // Copying of "Common.PaymentLeg memory[] memory" to storage (by assignment) is not supported,
         // so assign to memory var, then copy each element one by one to storage.
         delete nettedIntentions;
         for (uint ii = 0; ii < offsetted.length; ii++) {
-            console.log("PS.nI: adding netted intention ", offsetted[ii].amount);
             nettedIntentions.push(offsetted[ii]);
         }
 
-        console.log("PaymentSystem completed netting pass: ", nettedIntentions.length);
+        console.log("PaymentSystem netting pass done, #payments =", nettedIntentions.length);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////

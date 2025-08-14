@@ -73,9 +73,6 @@ contract MultilateralNetter is INetter {
             }
             if (found) continue;
 
-            // temp
-            console.log("*** MN.oP: found money ", intentionsToPay[ii].erc20);
-
             // erc20 of this payment wasn't found in monies, add it
             monies.push(intentionsToPay[ii].erc20);
         }
@@ -89,7 +86,7 @@ contract MultilateralNetter is INetter {
         // as it could be useful to query these to understand actions completed in
         // the most recent netting pass.
 
-        console.log("MN.oP: netted payments # is ", nettedPayments.length);
+        console.log("All multilateral netting done, #payments =", nettedPayments.length);
 
         return nettedPayments;
     }
@@ -101,16 +98,12 @@ contract MultilateralNetter is INetter {
     {
         require(money != address(0), "money address must be non-zero");
 
-        // temp
-        console.log("+++ MN.oIM: entry, #intentions: ", intentionsToPay.length);
-
-
         // run offsetting algorithm for payments in the specified money
         for (uint ii = 0; ii < intentionsToPay.length; ii++) {
 
             if (intentionsToPay[ii].erc20 != money)
             {
-                console.log("Skipping intention #", ii);
+                //console.log("Skipping intention #", ii);
                 continue;
             }
 
@@ -123,9 +116,6 @@ contract MultilateralNetter is INetter {
             updateNetForEndpt(toAddr, int(amount), money);
         }
 
-        // temp
-        console.log("MN.oIM: netAmounts len = ", netAmounts.length);
-
         // ofsetting has completed. generate resulting payments
         for (uint ii = 0; ii < netAmounts.length; ii++) {
 
@@ -136,7 +126,7 @@ contract MultilateralNetter is INetter {
             int     net   = netAmounts[ii].amount;
 
             if (net == 0) continue;
-            if (net < 0) { // endpt is net payer - pays to the money contract
+            if (net < 0) { // endpt is net payer - pays TO the money contract
                 nettedPayments.push(Common.newLeg(endpt, money, uint(net * -1), money));
 
                 // temp
@@ -154,7 +144,7 @@ contract MultilateralNetter is INetter {
             }
         }
 
-        console.log("Multi-lateral netting completed in money: ", money);
+        console.log("Multilateral netting done for money", money);
         // storage var nettedPayments has been updated, nothing to return
     }
 
