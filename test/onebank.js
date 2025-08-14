@@ -167,7 +167,8 @@ describe("Netting in a single bank", function () {
         const sigs = await ethers.getSigners();
         const sig0Addr = sigs[0].address;
 
-        const erc20Addr = await corracoinCon.getAddress();
+        const erc20Addr  = await corracoinCon.getAddress();
+        const paysysAddr = await paysysCon.getAddress();
         const toAddr    = "0xE74D3B7eC9Ad1E2341abc69D22F2820B88d4D62b";
         const amount    = 123;
 
@@ -185,18 +186,18 @@ describe("Netting in a single bank", function () {
         const numItems = await paysysCon.numNetted();
         expect(numItems).to.equal(2);
 
-        // 1st netted payment: fromAddr -> erc20 contract
+        // 1st netted payment: fromAddr -> paysys contract
         const item0 = await paysysCon.nettedPayments(0);
         //console.log(item0);
         expect(item0.from).to.equal(sig0Addr);
-        expect(item0.to).to.equal(erc20Addr);
+        expect(item0.to).to.equal(paysysAddr);
         expect(item0.amount).to.equal(123n);
         expect(item0.erc20).to.equal(erc20Addr);
 
-        // 2nd netted payment: erc20 contract -> toAddr
+        // 2nd netted payment: paysys contract -> toAddr
         const item1 = await paysysCon.nettedPayments(1);
         //console.log(item1);
-        expect(item1.from).to.equal(erc20Addr);
+        expect(item1.from).to.equal(paysysAddr);
         expect(item1.to).to.equal(toAddr);
         expect(item1.amount).to.equal(123n);
         expect(item1.erc20).to.equal(erc20Addr);
@@ -211,8 +212,9 @@ describe("Netting in a single bank", function () {
     it("net incoming & outgoing payments from 1 party", async function() {
         const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
 
-        // money supply
+        // money supply and payment system
         const erc20Addr = await corracoinCon.getAddress();
+        const paysysAddr = await paysysCon.getAddress();
 
         // to get signer addresses to act as 'from' and 'to'
         const sigs = await ethers.getSigners();
@@ -243,25 +245,25 @@ describe("Netting in a single bank", function () {
 
         const item0 = await paysysCon.nettedPayments(0);
         expect(item0.from).to.equal(sigs[0].address);
-        expect(item0.to).to.equal(erc20Addr);
+        expect(item0.to).to.equal(paysysAddr);
         expect(item0.amount).to.equal(225n);
         expect(item0.erc20).to.equal(erc20Addr);
 
         const item1 = await paysysCon.nettedPayments(1);
-        expect(item1.from).to.equal(erc20Addr);
+        expect(item1.from).to.equal(paysysAddr);
         expect(item1.to).to.equal(sigs[1].address);
         expect(item1.amount).to.equal(100n);
         expect(item1.erc20).to.equal(erc20Addr);
 
         const item2 = await paysysCon.nettedPayments(2);
-        expect(item2.from).to.equal(erc20Addr);
+        expect(item2.from).to.equal(paysysAddr);
         expect(item2.to).to.equal(sigs[2].address);
         expect(item2.amount).to.equal(200n);
         expect(item2.erc20).to.equal(erc20Addr);
 
         const item3 = await paysysCon.nettedPayments(3);
         expect(item3.from).to.equal(sigs[3].address);
-        expect(item3.to).to.equal(erc20Addr);
+        expect(item3.to).to.equal(paysysAddr);
         expect(item3.amount).to.equal(75n);
         expect(item3.erc20).to.equal(erc20Addr);
 
@@ -274,6 +276,7 @@ describe("Netting in a single bank", function () {
 
         // money supply
         const erc20Addr = await corracoinCon.getAddress();
+        const paysysAddr = await paysysCon.getAddress();
 
         // to get signer addresses to act as 'from' and 'to'
         const sigs = await ethers.getSigners();
@@ -317,24 +320,24 @@ describe("Netting in a single bank", function () {
 
         const item0 = await paysysCon.nettedPayments(0);
         expect(item0.from).to.equal(sigs[0].address);
-        expect(item0.to).to.equal(erc20Addr);
+        expect(item0.to).to.equal(paysysAddr);
         expect(item0.amount).to.equal(325n);
         expect(item0.erc20).to.equal(erc20Addr);
 
         const item1 = await paysysCon.nettedPayments(1);
-        expect(item1.from).to.equal(erc20Addr);
+        expect(item1.from).to.equal(paysysAddr);
         expect(item1.to).to.equal(sigs[1].address);
         expect(item1.amount).to.equal(375n);
         expect(item1.erc20).to.equal(erc20Addr);
         
         const item3 = await paysysCon.nettedPayments(2);
         expect(item3.from).to.equal(sigs[4].address);
-        expect(item3.to).to.equal(erc20Addr);
+        expect(item3.to).to.equal(paysysAddr);
         expect(item3.amount).to.equal(125n);
         expect(item3.erc20).to.equal(erc20Addr);
 
         const item4 = await paysysCon.nettedPayments(3);
-        expect(item4.from).to.equal(erc20Addr);
+        expect(item4.from).to.equal(paysysAddr);
         expect(item4.to).to.equal(sigs[3].address);
         expect(item4.amount).to.equal(75n);
         expect(item4.erc20).to.equal(erc20Addr);

@@ -65,7 +65,19 @@ contract PaymentSystem {
         // Copying of "Common.PaymentLeg memory[] memory" to storage (by assignment) is not supported,
         // so assign to memory var, then copy each element one by one to storage.
         delete nettedPayments;
+
         for (uint ii = 0; ii < offsetted.length; ii++) {
+
+            // Every netted payment is incoming (to the payment system) or outgoing. The Netter sets
+            // the "system" to be address(0). Find these and replace them with the address of this
+            // contract, so that when this payment is actually attempted, money moves from sending
+            // parties to this contract, and then from this contract to receiving parties.
+
+            if (offsetted[ii].from == address(0))
+                offsetted[ii].from = address(this);
+            if (offsetted[ii].to == address(0))
+                offsetted[ii].to = address(this);
+
             nettedPayments.push(offsetted[ii]);
         }
 

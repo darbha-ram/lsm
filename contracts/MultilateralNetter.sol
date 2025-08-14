@@ -79,7 +79,7 @@ contract MultilateralNetter is INetter {
 
         // now, iterate over the monies found, net by each one by one, accumulating result
         for (uint jj = 0; jj < monies.length; ++jj) {
-            offsetInMoney(rawPayments, monies[jj]);
+            performNettingOneMoney(rawPayments, monies[jj]);
         }
 
         // TBD - could delete monies and netAmounts here, but leave around for now
@@ -94,7 +94,7 @@ contract MultilateralNetter is INetter {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function offsetInMoney(Common.PaymentLeg[] calldata rawPayments, address money) internal
+    function performNettingOneMoney(Common.PaymentLeg[] calldata rawPayments, address money) internal
     {
         require(money != address(0), "money address must be non-zero");
 
@@ -126,16 +126,16 @@ contract MultilateralNetter is INetter {
             int     net   = netAmounts[ii].amount;
 
             if (net == 0) continue;
-            if (net < 0) { // endpt is net payer - pays TO the money contract
-                nettedPayments.push(Common.newLeg(endpt, money, uint(net * -1), money));
+            if (net < 0) { // endpt is net payer - pays TO the PaymentSystem
+                nettedPayments.push(Common.newLeg(endpt, address(0), uint(net * -1), money));
 
                 // temp
                 console.log("Payer -->");
                 console.log(endpt);
                 console.log(uint(net*-1));
             }
-            else { // endpt is a net payee - is paid FROM the money contract
-                nettedPayments.push(Common.newLeg(money, endpt, uint(net), money));
+            else { // endpt is a net payee - is paid FROM the PaymentSystem
+                nettedPayments.push(Common.newLeg(address(0), endpt, uint(net), money));
 
                 // temp
                 console.log("Payee <-- ");
