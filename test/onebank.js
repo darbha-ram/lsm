@@ -63,6 +63,8 @@ describe("Netting in a single bank", function () {
         return { corracoinCon, netterCon, paysysCon };
     }
 
+    //////////////////////////////////////////////////////////////////////////////////
+    //
     it("verify contracts with libraries installed and accessible", async function () {
         const { corracoinCon, netterCon, paysysCon } = await loadFixture(setupContractsFixture);
 
@@ -74,6 +76,8 @@ describe("Netting in a single bank", function () {
         expect(coinName).to.equal("CorrA$");
     });
 
+    //////////////////////////////////////////////////////////////////////////////////
+    //
     it("add and find payment", async function() {
         const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
 
@@ -100,6 +104,8 @@ describe("Netting in a single bank", function () {
 
     });
 
+    //////////////////////////////////////////////////////////////////////////////////
+    //
     it("delete payment", async function() {
         const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
 
@@ -122,6 +128,8 @@ describe("Netting in a single bank", function () {
 
     });
 
+    //////////////////////////////////////////////////////////////////////////////////
+    //
     it("add and find multiple payments", async function() {
         const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
 
@@ -150,6 +158,8 @@ describe("Netting in a single bank", function () {
         expect(leg.erc20).to.equal(erc20Addr);
     });
 
+    //////////////////////////////////////////////////////////////////////////////////
+    //
     it("net one payment", async function() {
         const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
 
@@ -158,7 +168,7 @@ describe("Netting in a single bank", function () {
         const sig0Addr = sigs[0].address;
 
         const erc20Addr = await corracoinCon.getAddress();
-        const toAddr    = "0xE74D3B7eC9Ad1E2341abc69D22F2820B88d4D62b"
+        const toAddr    = "0xE74D3B7eC9Ad1E2341abc69D22F2820B88d4D62b";
         const amount    = 123;
 
         // add intention to pay - returns a receipt. Read lastPid set by it
@@ -191,25 +201,145 @@ describe("Netting in a single bank", function () {
         expect(item1.amount).to.equal(123n);
         expect(item1.erc20).to.equal(erc20Addr);
         
-    });
-
-    /*
-    it("net outgoing payments from 1 party", async function() {
+        // to issue transactions on same contract using other signers
+        //const item2 = await paysysCon.connect(sigs[1]).nettedIntentions(1);
 
     });
 
-    it("net incoming payments from 1 party", async function() {
-
-    });
-
+    //////////////////////////////////////////////////////////////////////////////////
+    //
     it("net incoming & outgoing payments from 1 party", async function() {
+        const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
+
+        // money supply
+        const erc20Addr = await corracoinCon.getAddress();
+
+        // to get signer addresses to act as 'from' and 'to'
+        const sigs = await ethers.getSigners();
+
+        // 3 payments: sig0 has in & out payments, rest are unidirectional
+        // sig0 -> sig1 $100
+        // sig0 -> sig2 $200
+        // sig3 -> sig0  $75
+
+        // add 3 raw payments
+        await paysysCon.connect(sigs[0]).intentToPay(sigs[1].address, 100, erc20Addr);
+        await paysysCon.connect(sigs[0]).intentToPay(sigs[2].address, 200, erc20Addr);
+        await paysysCon.connect(sigs[3]).intentToPay(sigs[0].address,  75, erc20Addr);
+
+        // run netting process
+        resp = await paysysCon.netIntentions();
+
+        // after netting: verify 4 netted payments -- these may be in any order, but
+        // because we use Solidity push() which appends at the end, we can guess what
+        // that they would in the order below:
+        // sig0  -> erc20 $225
+        // erc20 -> sig1  $100
+        // erc20 -> sig2  $200
+        // sig3  -> erc20  $75
+
+        const numItems = await paysysCon.numNetted();
+        expect(numItems).to.equal(4);
+
+        const item0 = await paysysCon.nettedIntentions(0);
+        expect(item0.from).to.equal(sigs[0].address);
+        expect(item0.to).to.equal(erc20Addr);
+        expect(item0.amount).to.equal(225n);
+        expect(item0.erc20).to.equal(erc20Addr);
+
+        const item1 = await paysysCon.nettedIntentions(1);
+        expect(item1.from).to.equal(erc20Addr);
+        expect(item1.to).to.equal(sigs[1].address);
+        expect(item1.amount).to.equal(100n);
+        expect(item1.erc20).to.equal(erc20Addr);
+
+        const item2 = await paysysCon.nettedIntentions(2);
+        expect(item2.from).to.equal(erc20Addr);
+        expect(item2.to).to.equal(sigs[2].address);
+        expect(item2.amount).to.equal(200n);
+        expect(item2.erc20).to.equal(erc20Addr);
+
+        const item3 = await paysysCon.nettedIntentions(3);
+        expect(item3.from).to.equal(sigs[3].address);
+        expect(item3.to).to.equal(erc20Addr);
+        expect(item3.amount).to.equal(75n);
+        expect(item3.erc20).to.equal(erc20Addr);
 
     });
 
-    it("net incoming & outgoing payments from 3 parties", async function() {
+    //////////////////////////////////////////////////////////////////////////////////
+    //
+    it("net incoming & outgoing payments among 5 parties", async function() {
+        const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
+
+        // money supply
+        const erc20Addr = await corracoinCon.getAddress();
+
+        // to get signer addresses to act as 'from' and 'to'
+        const sigs = await ethers.getSigners();
+
+        // raw payments: sig0 is out-only; sig1 is in-only; sig2 is in/out net zero;
+        //   sig3 and sig4 are in/out net non-zero.
+        // sig0 -> sig1 $50
+        // sig0 -> sig2 $200
+        // sig0 -> sig4  $75
+        // sig2 -> sig1 $300
+        // sig3 -> sig2 $100
+        // sig4 -> sig1  $25
+        // sig4 -> sig3 $175
+
+        // input order of records above determines order after netting: 0, 1, 2, 4, 3
+
+        // add all the raw payments
+        await paysysCon.connect(sigs[0]).intentToPay(sigs[1].address, 50, erc20Addr);
+        await paysysCon.connect(sigs[0]).intentToPay(sigs[2].address, 200, erc20Addr);
+        await paysysCon.connect(sigs[0]).intentToPay(sigs[4].address, 75, erc20Addr);
+
+        await paysysCon.connect(sigs[2]).intentToPay(sigs[1].address, 300, erc20Addr);
+
+        await paysysCon.connect(sigs[3]).intentToPay(sigs[2].address, 100, erc20Addr);
+
+        await paysysCon.connect(sigs[4]).intentToPay(sigs[1].address, 25, erc20Addr);
+        await paysysCon.connect(sigs[4]).intentToPay(sigs[3].address, 175, erc20Addr);
+
+        // run netting process
+        resp = await paysysCon.netIntentions();
+
+        // verify after netting
+        // sig0 -> 325
+        // sig1 <- 375
+        // sig2 zero!   (no entry for this)
+        // sig3 <- 75  (this is last entry!)
+        // sig4 -> 125 (this is last-but-one entry!)
+
+        const numItems = await paysysCon.numNetted();
+        expect(numItems).to.equal(4);
+
+        const item0 = await paysysCon.nettedIntentions(0);
+        expect(item0.from).to.equal(sigs[0].address);
+        expect(item0.to).to.equal(erc20Addr);
+        expect(item0.amount).to.equal(325n);
+        expect(item0.erc20).to.equal(erc20Addr);
+
+        const item1 = await paysysCon.nettedIntentions(1);
+        expect(item1.from).to.equal(erc20Addr);
+        expect(item1.to).to.equal(sigs[1].address);
+        expect(item1.amount).to.equal(375n);
+        expect(item1.erc20).to.equal(erc20Addr);
+        
+        const item3 = await paysysCon.nettedIntentions(2);
+        expect(item3.from).to.equal(sigs[4].address);
+        expect(item3.to).to.equal(erc20Addr);
+        expect(item3.amount).to.equal(125n);
+        expect(item3.erc20).to.equal(erc20Addr);
+
+        const item4 = await paysysCon.nettedIntentions(3);
+        expect(item4.from).to.equal(erc20Addr);
+        expect(item4.to).to.equal(sigs[3].address);
+        expect(item4.amount).to.equal(75n);
+        expect(item4.erc20).to.equal(erc20Addr);
 
     });
-    */
 
 
   });
