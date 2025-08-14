@@ -34,7 +34,8 @@ module.exports = {
   },
   allowUnlimitedContractSize: true,
 
-  defaultNetwork: "opencbdc",
+  //defaultNetwork: "opencbdc",
+  defaultNetwork: "localhost",
   networks: {
     hardhat: {
       allowUnlimitedContractSize: true,          // TBD - doesn't do anything?
