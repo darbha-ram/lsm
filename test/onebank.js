@@ -71,7 +71,7 @@ describe("Netting in a single bank", function () {
         const netterVer = await netterCon.myver();
         expect(netterVer).to.equal("13Aug.1225");
         const paysysVer = await paysysCon.myver();
-        expect(paysysVer).to.equal("13Aug.1230");
+        expect(paysysVer).to.equal("14Aug.1530");
         const coinName = await corracoinCon.symbol();
         expect(coinName).to.equal("CorrA$");
     });
@@ -85,11 +85,11 @@ describe("Netting in a single bank", function () {
         const amount = 123125;
         const erc20Addr = await corracoinCon.getAddress();
 
-        // add intention to pay - this returns a receipt, not the PID! It sets lastPid..
-        const resp = await paysysCon.intentToPay(toAddr, amount, erc20Addr);
+        // add raw payment - this returns a receipt, not the PID! It sets lastRawPid..
+        const resp = await paysysCon.addRawPayment(toAddr, amount, erc20Addr);
 
         // .. which can be read via a getter (view) API
-        const pid1 = await paysysCon.lastPid();
+        const pid1 = await paysysCon.lastRawPid();
         expect(pid1.length).to.equal(66);
 
         // retrieve and check payment details
@@ -113,11 +113,11 @@ describe("Netting in a single bank", function () {
         const amount = 123125;
         const erc20Addr = await corracoinCon.getAddress();
 
-        // add intention to pay - this returns a receipt, not the PID! It sets lastPid..
-        const resp = await paysysCon.intentToPay(toAddr, amount, erc20Addr);
+        // add raw payment - this returns a receipt, not the PID! It sets lastRawPid..
+        const resp = await paysysCon.addRawPayment(toAddr, amount, erc20Addr);
 
         // .. which can be read via a getter (view) API
-        const pid1 = await paysysCon.lastPid();
+        const pid1 = await paysysCon.lastRawPid();
 
         // delete this payment
         await paysysCon.deleteRawPayment(pid1);
@@ -139,12 +139,12 @@ describe("Netting in a single bank", function () {
         const toAddr2   = "0xD8dfE02d0eD3Ff0E9fc100EdE06244c28d6f3655";
         const amount2 = 222222;
 
-        // add intention to pay - returns a receipt. Read lastPid set by it
-        resp = await paysysCon.intentToPay(toAddr1, amount1, erc20Addr);
-        const pid1 = await paysysCon.lastPid();
-        // .. and intention #2
-        resp = await paysysCon.intentToPay(toAddr2, amount2, erc20Addr);
-        const pid2 = await paysysCon.lastPid();
+        // add raw payment - returns a receipt. Read lastRawPid set by it
+        resp = await paysysCon.addRawPayment(toAddr1, amount1, erc20Addr);
+        const pid1 = await paysysCon.lastRawPid();
+        // .. and raw payment #2
+        resp = await paysysCon.addRawPayment(toAddr2, amount2, erc20Addr);
+        const pid2 = await paysysCon.lastRawPid();
 
         // retrieve and verify each
         leg = await paysysCon.getRawPayment(pid1);
@@ -171,9 +171,9 @@ describe("Netting in a single bank", function () {
         const toAddr    = "0xE74D3B7eC9Ad1E2341abc69D22F2820B88d4D62b";
         const amount    = 123;
 
-        // add intention to pay - returns a receipt. Read lastPid set by it
-        resp = await paysysCon.intentToPay(toAddr, amount, erc20Addr);
-        const pid1 = await paysysCon.lastPid();
+        // add raw payment - returns a receipt. Read lastRawPid set by it
+        resp = await paysysCon.addRawPayment(toAddr, amount, erc20Addr);
+        const pid1 = await paysysCon.lastRawPid();
 
         // run netting process
         resp = await paysysCon.performNetting();
@@ -223,9 +223,9 @@ describe("Netting in a single bank", function () {
         // sig3 -> sig0  $75
 
         // add 3 raw payments
-        await paysysCon.connect(sigs[0]).intentToPay(sigs[1].address, 100, erc20Addr);
-        await paysysCon.connect(sigs[0]).intentToPay(sigs[2].address, 200, erc20Addr);
-        await paysysCon.connect(sigs[3]).intentToPay(sigs[0].address,  75, erc20Addr);
+        await paysysCon.connect(sigs[0]).addRawPayment(sigs[1].address, 100, erc20Addr);
+        await paysysCon.connect(sigs[0]).addRawPayment(sigs[2].address, 200, erc20Addr);
+        await paysysCon.connect(sigs[3]).addRawPayment(sigs[0].address,  75, erc20Addr);
 
         // run netting process
         resp = await paysysCon.performNetting();
@@ -291,16 +291,16 @@ describe("Netting in a single bank", function () {
         // input order of records above determines order after netting: 0, 1, 2, 4, 3
 
         // add all the raw payments
-        await paysysCon.connect(sigs[0]).intentToPay(sigs[1].address, 50, erc20Addr);
-        await paysysCon.connect(sigs[0]).intentToPay(sigs[2].address, 200, erc20Addr);
-        await paysysCon.connect(sigs[0]).intentToPay(sigs[4].address, 75, erc20Addr);
+        await paysysCon.connect(sigs[0]).addRawPayment(sigs[1].address, 50, erc20Addr);
+        await paysysCon.connect(sigs[0]).addRawPayment(sigs[2].address, 200, erc20Addr);
+        await paysysCon.connect(sigs[0]).addRawPayment(sigs[4].address, 75, erc20Addr);
 
-        await paysysCon.connect(sigs[2]).intentToPay(sigs[1].address, 300, erc20Addr);
+        await paysysCon.connect(sigs[2]).addRawPayment(sigs[1].address, 300, erc20Addr);
 
-        await paysysCon.connect(sigs[3]).intentToPay(sigs[2].address, 100, erc20Addr);
+        await paysysCon.connect(sigs[3]).addRawPayment(sigs[2].address, 100, erc20Addr);
 
-        await paysysCon.connect(sigs[4]).intentToPay(sigs[1].address, 25, erc20Addr);
-        await paysysCon.connect(sigs[4]).intentToPay(sigs[3].address, 175, erc20Addr);
+        await paysysCon.connect(sigs[4]).addRawPayment(sigs[1].address, 25, erc20Addr);
+        await paysysCon.connect(sigs[4]).addRawPayment(sigs[3].address, 175, erc20Addr);
 
         // run netting process
         resp = await paysysCon.performNetting();

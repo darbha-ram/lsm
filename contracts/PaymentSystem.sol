@@ -18,17 +18,18 @@ contract PaymentSystem {
     // Multi-lateral netting implementation
     INetter public immutable NETTER;
 
-    // Intentions to pay - each payer can have multiple intentions recorded, including several
-    // to same payee of the same amount, as long as they have different timestamps.
+    // Raw payments - each payer can have multiple of these recorded, including several
+    // to same payee of the same amount, as long as they have different timestamps. These
+    // are intentions to pay, prior to netting.
     Common.PaymentLeg[] public rawPayments;
 
-    // Intentions aftey they've been subject to netting. These are 'final' payments that would
-    // need to be cleared and settled to complete one cycle of operations.
+    // After raw payments are netted, they become netted payments. These would need to
+    // be cleared and settled to complete one cycle of operations.
     Common.PaymentLeg[] public nettedPayments;
 
-    // store the ID of the last payment intention as contract data, so it can be retrieved after
-    // intentToPay() has completed.
-    string public lastPid;
+    // store the ID of the last raw payment as contract data, so it can be retrieved after
+    // addRawPayment() has completed.
+    string public lastRawPid;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -39,7 +40,7 @@ contract PaymentSystem {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function intentToPay(address toAddr, uint amount, address erc20) public returns(string memory) {
+    function addRawPayment(address toAddr, uint amount, address erc20) public returns(string memory) {
         require(amount > 0, "amount must be positive value");
         require(toAddr != address(0), "toAddr must be non-zero");
         require(erc20  != address(0), "erc20 addr must be non-zero");
@@ -50,7 +51,7 @@ contract PaymentSystem {
         string memory idStr = HashConverter.toHexString(leg.id);
         //console.log(string.concat("iTP: leg created ", idStr));
 
-        lastPid = idStr;
+        lastRawPid = idStr;
         return idStr;
     }
 
@@ -74,6 +75,7 @@ contract PaymentSystem {
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     // Ideally shouldn't need this method, if call contract.nettedPayments.length() works in JS.
     // That doesn't work via Hardhat (tooling dependent?) so use this custom method for now.
+    //
     function numNetted() public view returns(uint) {
         return nettedPayments.length;
     }
@@ -131,7 +133,7 @@ contract PaymentSystem {
     }
 
     function myver() public pure returns(string memory) {
-        return "13Aug.1230";
+        return "14Aug.1530";
     }
 
 
