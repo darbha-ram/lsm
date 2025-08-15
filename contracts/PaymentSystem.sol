@@ -194,7 +194,7 @@ contract PaymentSystem {
         // (not implemented for now).
 
         // make outgoing payments one by one
-        bool success = false;
+        bool success = true;
         for (uint ii = 0; ii < nettedPayments.length; ++ii) {
 
             Common.PaymentLeg memory leg = nettedPayments[ii];
@@ -207,23 +207,17 @@ contract PaymentSystem {
             // temp
             console.log("Settling: PaySys -->", leg.to, leg.amount);
 
-            // TBD some ERC20 implementations may return false on failure, others may revert.
-            // This assumes a false return value.
-            success = erc20Con.transfer(leg.to, leg.amount);
-            if (!success) {
-                // should never get here, as funds were cleared in performClearing()
-                console.log("-- settling transaction failed!? aborting..");
-                break;
+            try erc20Con.transfer(leg.to, leg.amount) {
+                // nothing to do on success
+            }
+            catch (bytes memory) {
+                // should never get here, as funds were moved to this contract in clear()
+                console.log("-- settling transaction failed!? continuing..");
+                success = false;
             }
         }
 
-        if (!success)
-        {
-            // No way to undo payments that have been paid OUT to other parties
-            // earlier in this loop. But we should never get here.
-            console.log ("Settlement failed!");
-        }
-    
+        // return false if at least one payment failed (should never happen)
         return success;
     }
 
