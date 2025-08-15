@@ -17,7 +17,7 @@ interface INetter {
     // Note: return value must be declared as memory, and a dynamically sized return value as below
     // must be returned _from_ memory by an implementation. The input arg is declared as calldata,
     // so is read-only and avoids copying.
-    function performNetting(Common.PaymentLeg[] calldata) external returns(Common.PaymentLeg[] memory);
+    function net(Common.PaymentLeg[] calldata) external returns(Common.PaymentLeg[] memory);
 
 }
 

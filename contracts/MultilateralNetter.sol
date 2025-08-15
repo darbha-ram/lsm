@@ -49,7 +49,7 @@ contract MultilateralNetter is INetter {
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     // Do multilateral netting across all monies in payment set
     //
-    function performNetting(Common.PaymentLeg[] calldata rawPayments) external
+    function net(Common.PaymentLeg[] calldata rawPayments) external
         returns(Common.PaymentLeg[] memory)
     {
         // clear state prior to this offsetting pass - since the passes of different monies are
@@ -79,7 +79,7 @@ contract MultilateralNetter is INetter {
 
         // now, iterate over the monies found, net by each one by one, accumulating result
         for (uint jj = 0; jj < monies.length; ++jj) {
-            performNettingOneMoney(rawPayments, monies[jj]);
+            netOneMoney(rawPayments, monies[jj]);
         }
 
         // TBD - could delete monies and netAmounts here, but leave around for now
@@ -94,7 +94,7 @@ contract MultilateralNetter is INetter {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function performNettingOneMoney(Common.PaymentLeg[] calldata rawPayments, address money) internal
+    function netOneMoney(Common.PaymentLeg[] calldata rawPayments, address money) internal
     {
         require(money != address(0), "money address must be non-zero");
 
@@ -122,29 +122,25 @@ contract MultilateralNetter is INetter {
             if (netAmounts[ii].erc20 != money)
                 continue;
 
-            address endpt = netAmounts[ii].endpt;
-            int     net   = netAmounts[ii].amount;
+            address endpt  = netAmounts[ii].endpt;
+            int     netAmt = netAmounts[ii].amount;
 
-            if (net == 0) continue;
-            if (net < 0) { // endpt is net payer - pays TO the PaymentSystem
-                nettedPayments.push(Common.newLeg(endpt, address(0), uint(net * -1), money));
+            if (netAmt == 0) continue;
+            if (netAmt < 0) { // endpt is net payer - pays TO the PaymentSystem
+                nettedPayments.push(Common.newLeg(endpt, address(0), uint(netAmt * -1), money));
 
                 // temp
-                console.log("Payer -->");
-                console.log(endpt);
-                console.log(uint(net*-1));
+                console.log("Payer", endpt, "-->", uint(netAmt * -1));
             }
             else { // endpt is a net payee - is paid FROM the PaymentSystem
-                nettedPayments.push(Common.newLeg(address(0), endpt, uint(net), money));
+                nettedPayments.push(Common.newLeg(address(0), endpt, uint(netAmt), money));
 
                 // temp
-                console.log("Payee <-- ");
-                console.log(endpt);
-                console.log(uint(net));
+                console.log("Payee", endpt, "<--", uint(netAmt));
             }
         }
 
-        console.log("Multilateral netting done for money", money);
+        console.log("Multilateral netting done for ERC20", money);
         // storage var nettedPayments has been updated, nothing to return
     }
 

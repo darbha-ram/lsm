@@ -177,7 +177,7 @@ describe("Netting in a single bank", function () {
         const pid1 = await paysysCon.lastRawPid();
 
         // run netting process
-        resp = await paysysCon.performNetting();
+        resp = await paysysCon.net();
 
         // verify that result of netting 1 orig payment is 2 payments, as below
         // fromAddr -> toAddr is decomposed to
@@ -230,7 +230,7 @@ describe("Netting in a single bank", function () {
         await paysysCon.connect(sigs[3]).addRawPayment(sigs[0].address,  75, erc20Addr);
 
         // run netting process
-        resp = await paysysCon.performNetting();
+        resp = await paysysCon.net();
 
         // after netting: verify 4 netted payments -- these may be in any order, but
         // because we use Solidity push() which appends at the end, we can guess what
@@ -274,7 +274,7 @@ describe("Netting in a single bank", function () {
     it("net incoming & outgoing payments among 5 parties", async function() {
         const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
 
-        // money supply
+        // money supply and payment system
         const erc20Addr = await corracoinCon.getAddress();
         const paysysAddr = await paysysCon.getAddress();
 
@@ -306,14 +306,14 @@ describe("Netting in a single bank", function () {
         await paysysCon.connect(sigs[4]).addRawPayment(sigs[3].address, 175, erc20Addr);
 
         // run netting process
-        resp = await paysysCon.performNetting();
+        resp = await paysysCon.net();
 
         // verify after netting
-        // sig0 -> 325
-        // sig1 <- 375
-        // sig2 zero!   (no entry for this)
-        // sig3 <- 75  (this is last entry!)
-        // sig4 -> 125 (this is last-but-one entry!)
+        //   sig0 -> 325
+        //   sig1 <- 375
+        //   sig2 zero!  (no entry for this)
+        //   sig4 -> 125 (this is entry #3)
+        //   sig3 <- 75  (this is entry #4)
 
         const numItems = await paysysCon.numNetted();
         expect(numItems).to.equal(4);
@@ -343,6 +343,51 @@ describe("Netting in a single bank", function () {
         expect(item4.erc20).to.equal(erc20Addr);
 
     });
+
+    //////////////////////////////////////////////////////////////////////////////////
+    //
+    it("net, clear and settle a payment", async function() {
+        const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
+
+        // money supply and payment system
+        const erc20Addr = await corracoinCon.getAddress();
+        const paysysAddr = await paysysCon.getAddress();
+
+        // to get signer addresses to act as 'from' and 'to'
+        const sigs = await ethers.getSigners();
+
+        // mint some funds for sender and receiver
+        await corracoinCon.connect(sigs[1]).mint(sigs[18].address, 875);
+        await corracoinCon.connect(sigs[1]).mint(sigs[19].address, 975);
+
+        // 1 raw payment from sig18 to sig19, before which sender gives the
+        // PaySys contract approval to move her funds.
+        retval = await corracoinCon.connect(sigs[18]).approve(paysysAddr, 50);
+        await paysysCon.connect(sigs[18]).addRawPayment(sigs[19].address, 50, erc20Addr);
+
+        // save original balances of sender and receiver
+        const orig18Bal = await corracoinCon.connect(sigs[18]).balanceOf(sigs[18].address);
+        const orig19Bal = await corracoinCon.connect(sigs[19]).balanceOf(sigs[19].address);
+
+        // run netting process
+        resp = await paysysCon.net();
+        const numItems = await paysysCon.numNetted();
+        expect(numItems).to.equal(2);
+
+        // run clearing & settlement
+        resp = await paysysCon.clearAndSettle();
+
+        // save new balances after settlement
+        const new18Bal = await corracoinCon.connect(sigs[18]).balanceOf(sigs[18].address);
+        const new19Bal = await corracoinCon.connect(sigs[19]).balanceOf(sigs[19].address);
+        console.log("Orig 18: ", orig18Bal);
+        console.log("New 18:  ", new18Bal);
+
+        expect(orig18Bal - new18Bal).to.equal(50);
+        expect(new19Bal - orig19Bal).to.equal(50);
+
+    });
+    
 
 
   });
