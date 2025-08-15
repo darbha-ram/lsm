@@ -90,8 +90,6 @@ contract PaymentSystem {
 
             nettedPayments.push(offsetted[ii]);
         }
-
-        console.log("PaymentSystem netting pass done, #payments =", nettedPayments.length);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +123,7 @@ contract PaymentSystem {
 
         // execute incoming payments one by one, using approval given by senders at the time they
         // invoked addRawPayment().
-        bool success = false;
+        bool success = true;
         for (uint ii = 0; ii < nettedPayments.length; ++ii) {
 
             Common.PaymentLeg memory leg = nettedPayments[ii];
@@ -140,19 +138,16 @@ contract PaymentSystem {
 
             // TBD some ERC20 implementations may return false on failure, others may revert.
             // This assumes a false return value. Instead if it reverts, catch and undo earlier ones.
-            success = erc20Con.transferFrom(leg.from, address(this), leg.amount);
-            if (success) {
-                // this leg cleared successfully, make note of it, proceed to next leg
+            try erc20Con.transferFrom(leg.from, address(this), leg.amount) {
+                // this leg cleared successfully, store it, proceed to next leg
                 clearedPayments.push(leg);
-            } else {
+            }
+            catch (bytes memory) { // revert or other catch-all
                 console.log("-- clearing transaction failed! aborting..");
+                undoClear();
+                success = false;
                 break;
             }
-        }
-
-        // if we exited the loop due to a failed transfer, undo those that completed earlier
-        if (!success) {
-            undoClear();
         }
 
         // Could delete clearedPayments at this point, but don't, in case it is needed to
@@ -164,13 +159,25 @@ contract PaymentSystem {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    function undoClear() pure internal returns(bool) {
+    function undoClear() internal {
 
-        //
-        // TBD should never fail, since these are outgoing payments from this contract's funds
-        //
-        console.log("undoClear() not implemented!");
-        return false;
+        // Undo the incoming payments already completed, by issuing a bunch of corresponding
+        // _outgoing_ payments. They should not fail since the funds were transferred into this
+        // contract successfully a short while ago and can be paid out.
+
+        console.log("Reverting previously cleared incoming payments..");
+
+        for (uint ii = 0; ii < clearedPayments.length; ++ii) {
+            Common.PaymentLeg memory leg = clearedPayments[ii];
+
+            IERC20 erc20Con = IERC20(leg.erc20);
+            try erc20Con.transfer(leg.from, leg.amount) {
+                console.log("- Reverted", leg.amount, "back to", leg.from);
+            }
+            catch (bytes memory lowLevelData) {
+                console.log("- Error: revert", string(lowLevelData));
+            }
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////

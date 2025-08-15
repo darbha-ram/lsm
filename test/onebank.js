@@ -438,6 +438,59 @@ describe("Netting, clearing and settling in a single bank", function () {
     });
     
 
+    //////////////////////////////////////////////////////////////////////////////////
+    //
+    it("undo cleared payments on failure", async function() {
+        const { corracoinCon, paysysCon } = await loadFixture(setupContractsFixture);
+
+        // money supply and payment system
+        const erc20Addr = await corracoinCon.getAddress();
+        const paysysAddr = await paysysCon.getAddress();
+
+        // to get signer addresses to act as 'from' and 'to'
+        const sigs = await ethers.getSigners();
+
+        // mint some funds for 3 parties 
+        await corracoinCon.connect(sigs[1]).mint(sigs[17].address, 50);
+        await corracoinCon.connect(sigs[1]).mint(sigs[18].address, 50);
+        await corracoinCon.connect(sigs[1]).mint(sigs[19].address, 50);
+
+        // 3 raw payments. Each sender gives the PaySys contract approval to move her funds.
+        // sig17 -> sig18 $10
+        // sig18 -> sig19 $80
+        // sig17 -> sig19 $30
+        await corracoinCon.connect(sigs[17]).approve(paysysAddr, 40);
+        await paysysCon.connect(sigs[17]).addRawPayment(sigs[18].address, 10, erc20Addr);
+        await paysysCon.connect(sigs[17]).addRawPayment(sigs[19].address, 30, erc20Addr);
+        await corracoinCon.connect(sigs[18]).approve(paysysAddr, 80);
+        await paysysCon.connect(sigs[18]).addRawPayment(sigs[19].address, 80, erc20Addr);
+
+        // save original balances of sender and receiver
+        const orig17Bal = await corracoinCon.connect(sigs[17]).balanceOf(sigs[17].address);
+        const orig18Bal = await corracoinCon.connect(sigs[18]).balanceOf(sigs[18].address);
+        const orig19Bal = await corracoinCon.connect(sigs[19]).balanceOf(sigs[19].address);
+
+        // run netting process
+        resp = await paysysCon.net();
+        const numItems = await paysysCon.numNetted();
+        expect(numItems).to.equal(3);
+
+        // run clearing & settlement
+        resp = await paysysCon.clearAndSettle();
+
+        // save new balances after settlement
+        const new17Bal = await corracoinCon.connect(sigs[17]).balanceOf(sigs[17].address);
+        const new18Bal = await corracoinCon.connect(sigs[18]).balanceOf(sigs[18].address);
+        const new19Bal = await corracoinCon.connect(sigs[19]).balanceOf(sigs[19].address);
+
+        // since clearing was aborted and no settlement happened, balances should be unchanged
+        expect(orig17Bal).to.equal(new17Bal);
+        expect(orig18Bal).to.equal(new18Bal);
+        expect(orig19Bal).to.equal(new19Bal);
+
+    });
+
+
 
   });
 
