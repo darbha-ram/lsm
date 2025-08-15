@@ -1,7 +1,48 @@
 # LSM example
+Simple example of a netting algorithm (liquidity savings mechanism) on
+Ethereum. The main contracts are:
 
+* `PaymentSystem` - the entry point, for users to `addRawPayment()` to a specified receiver
+   of a specified amount, in a specified ERC20 money. After adding several raw payments,
+   can invoke `net()` to perform netting, followed by `clearAndSette()` to finalize the
+   netted payments.
+* `MultilateralNetter` - this contract provides one implementation of a netting algorithm,
+   given a set of raw payments. The raw payments can be across multiple ERC20 supplies. This
+   algorithm nets payments within each supply and returns the netted payments across all the
+   supplies.
+* `Coin` contracts - there are several ERC20 contracts, e.g., `CoA1Coin`, `CoB1Coin`, `CorrACoin`
+   etc., each being the money supply of one bank's liability.
+*  `Common` - a library that defines `PaymentLeg` and provides a utility method to create one.
+*  `HashConverter` - a library to allow conversion between the hash and a string. Each leg or
+   raw payment is distinguished by its GUID which is its binary (bytes32) hash. But users can
+   search for a raw payment using the "0x" string version of the binary GUID. This library
+   permits coversion betwen the binary and human-usable strings.
+*  `MyLibsTest` - a test contract, to encapsulate library functions and allow their invocation
+   from test code in `test/basic.js`.
 
-# Cross-border payment flow
+# Tests - one bank
+Tests for a single bank are in `test/onebank.js`.  These tests operate on the money supply
+on a single bank, i.e., a single ERC20 contract. Basic operations like adding raw payments,
+netting them, clearing and settling them, along with clearing errors, and different
+netting scenarios including incoming payments, outgoing payments, zero netting value, etc.
+are all testable within one ERC20 supply. Also, clearing and settling requires operating
+on the ERC20 supply, and ensuring that a transaction sender gives permission to the payment
+system contract to operate on his funds - this workflow is tested in `onebank.js`.
+
+These can be executed like so:
+```
+$ cd ~/lsm
+$ npx hardhat node
+$ npx hardhat test test/onebank.js
+```
+Run line #2 in one shell, it starts a local Hardhat node. In a separate shell, run line #3 to
+run the test scripts. Console log from Solidity (and contract invocations) can be seen in the
+local node window, while test progression is seen in the test script window.
+
+# Mutiple banks
+TBD
+
+## Cross-border payment flow
 
 `Alice` -- Commercial Bank `CoA1` -- Correspondent Bank `CorrA` -- Correspondent Bank `CorrB` -- Commercial Bank `CoB1` -- `Bob`
 
