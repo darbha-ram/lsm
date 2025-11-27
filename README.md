@@ -39,6 +39,8 @@ Run line #2 in one shell, it starts a local Hardhat node. In a separate shell, r
 run the test scripts. Console log from Solidity (and contract invocations) can be seen in the
 local node window, while test progression is seen in the test script window.
 
+The key test cases on a single supply are briefly outlined [here](README_testsOne.md).
+
 # Mutiple banks
 TBD
 
